@@ -2,6 +2,7 @@ import streamlit as st
 from db import load_tag_rules, load_extracted_tags, add_tag_rule, delete_tag_rule, delete_extracted_tag
 from tagger import auto_tag_reviews
 
+
 def show_tags(app_id='cashgiraffe.app'):
     st.header("Tags")
     st.markdown("Manage tags and tag rules for the selected app.")
@@ -44,10 +45,32 @@ def show_tags(app_id='cashgiraffe.app'):
     else:
         st.write("No tag rules defined.")
 
-    # Display extracted tags
+    # Display extracted tags with pagination
     st.subheader("Extracted Tags")
+    if 'tags_page' not in st.session_state:
+        st.session_state['tags_page'] = 0
+
     if extracted_tags:
-        for tag in extracted_tags:
+        total_tags = len(extracted_tags)
+        items_per_page = st.sidebar.selectbox("Items per page", [10, 20, 50, 100], key="tags_items_per_page", index=1)
+        total_pages = (total_tags + items_per_page - 1) // items_per_page
+
+        if total_pages > 1:
+            col1, col2 = st.columns(2)
+            with col1:
+                if st.button("Previous", key="tags_previous_button", disabled=(st.session_state['tags_page'] == 0)):
+                    st.session_state['tags_page'] -= 1
+                    st.experimental_rerun()
+            with col2:
+                if st.button("Next", key="tags_next_button", disabled=(st.session_state['tags_page'] == total_pages - 1)):
+                    st.session_state['tags_page'] += 1
+                    st.experimental_rerun()
+
+        start_index = st.session_state['tags_page'] * items_per_page
+        end_index = start_index + items_per_page
+        paginated_tags = extracted_tags[start_index:end_index]
+
+        for tag in paginated_tags:
             with st.expander(f"Tag: {tag}"):
                 if st.button(f"Delete {tag}", key=f"delete_extracted_{tag}"):
                     try:
@@ -56,6 +79,7 @@ def show_tags(app_id='cashgiraffe.app'):
                         st.experimental_rerun()
                     except Exception as e:
                         st.error(f"Error deleting extracted tag: {e}")
+
     else:
         st.write("No extracted tags available.")
 

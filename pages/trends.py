@@ -63,7 +63,8 @@ def show_trends(app_id='cashgiraffe.app'):
         tags_df['tags'] = tags_df['tags'].str.split(',')
         tags_exploded = tags_df.explode('tags')
         tags_exploded['tags'] = tags_exploded['tags'].str.strip()
-        tag_trend = tags_exploded.groupby([tags_exploded['date'].dt.date, 'tags']).size().unstack().fillna(0).reset_index()
+        tags_exploded = tags_exploded.rename(columns={'date': 'date_group'})
+        tag_trend = tags_exploded.groupby([tags_exploded['date_group'].dt.date, 'tags']).size().unstack().fillna(0).reset_index()
         top_tags = tags_exploded['tags'].value_counts().head(5).index
         tag_trend = tag_trend[['date'] + list(top_tags)]
         tag_melted = tag_trend.melt('date', var_name='tags', value_name='count')

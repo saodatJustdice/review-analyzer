@@ -15,6 +15,7 @@ def init_db():
         logging.info("Database already initialized, skipping init_db.")
         return
     try:
+        clear_reviews_cache()
         start_time = time.time()
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
@@ -248,40 +249,24 @@ def delete_extracted_tag(app_id, tag_name):
 
 # Database connection (cached)
 @st.cache_data
-def get_reviews(app_id='cashgiraffe.app', _cache_buster=0):
+def get_reviews(app_id='cashgiraffe.app', start_date=None, end_date=None):
     try:
         init_db()
-        logging.info(f"Fetching reviews for app_id: {app_id}")
-        start_time = time.time()
+        logging.info(f"Fetching reviews for app_id: {app_id} with start_date: {start_date} and end_date: {end_date}")
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
-        cursor.execute("SELECT COUNT(*) FROM reviews WHERE app_id = ?", (app_id,))
-        count = cursor.fetchone()[0]
-        logging.info(f"Found {count} reviews for {app_id} in the database.")
-
         query = "SELECT * FROM reviews WHERE app_id = ?"
-        df = pd.read_sql_query(query, conn, params=(app_id,))
+        params = [app_id]
+        if start_date and end_date:
+            query += " AND date BETWEEN ? AND ?"
+            params.extend([start_date.strftime('%Y-%m-%d'), end_date.strftime('%Y-%m-%d')])
+        df = pd.read_sql_query(query, conn, params=params)
         conn.close()
-        logging.info(f"Database query took {time.time() - start_time:.2f} seconds")
-
-        if df.empty:
-            logging.info("No reviews found in the database after loading into DataFrame.")
-            return pd.DataFrame()
-
-        start_time = time.time()
         df['date'] = pd.to_datetime(df['date'])
-        logging.info(f"Date conversion took {time.time() - start_time:.2f} seconds")
-
-        start_time = time.time()
-        has_duplicates = df['username'].duplicated().any()
-        if has_duplicates:
-            df['display_username'] = df.apply(
-                lambda x: f"{x['username']} (ID: {x['review_id'][-4:]})", axis=1)
+        if df.empty:
+            logging.info(f"No reviews found for app_id: {app_id}")
         else:
-            df['display_username'] = df['username']
-        logging.info(f"Display username calculation took {time.time() - start_time:.2f} seconds")
-
-        logging.info(f"Returning DataFrame with {len(df)} rows for {app_id}.")
+            logging.info(f"Found {len(df)} reviews for app_id: {app_id}")
         return df
     except Exception as e:
         logging.error(f"Error loading reviews from database: {e}")

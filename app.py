@@ -4,13 +4,17 @@ from pages.reviews import show_reviews
 from pages.trends import show_trends
 from pages.tags import show_tags
 from db import get_app_ids, add_app_id, clear_reviews_cache
-
 # Configure the app to collapse the default sidebar and use a custom navigation
 st.set_page_config(
     page_title="Play Store Review Analyzer",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
+
+with open('./style.css') as f:
+    css = f.read()
+
+st.markdown(f'<style>{css}</style>', unsafe_allow_html=True)
 
 # Clear cache on app start to ensure fresh data
 clear_reviews_cache()
