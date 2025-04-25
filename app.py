@@ -1,6 +1,9 @@
 import streamlit as st
-import plotly.express as px
-from utils import get_reviews, refresh_reviews
+from pages.home import show_home
+from pages.reviews import show_reviews
+from pages.trends import show_trends
+from pages.tags import show_tags
+from db import get_app_ids, add_app_id, clear_reviews_cache
 
 # Configure the app to collapse the default sidebar and use a custom navigation
 st.set_page_config(
@@ -9,80 +12,39 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
+# Clear cache on app start to ensure fresh data
+clear_reviews_cache()
+
 st.title("Play Store Review Analyzer")
 
-def show_home():
-    st.header("Summary Statistics")
-    st.markdown("Overview of review sentiment, tags, and ratings for Cash Giraffe app.")
+# Fetch app IDs from the database
+app_ids = get_app_ids()
 
-    # Refresh button
-    if st.button("Refresh Reviews", help="Fetch new reviews, analyze sentiment, and auto-tag"):
-        with st.spinner("Refreshing reviews... This may take a few minutes."):
-            _, message = refresh_reviews()
-            st.success(message) if "Successfully" in message else st.error(message)
-            st.cache_data.clear()
+# App selection
+st.sidebar.header("App Selection")
+app_id = st.sidebar.selectbox("Choose an app", app_ids)
 
-    df = get_reviews()
-    if df.empty:
-        st.warning("No reviews available. Please refresh reviews.")
-        return
+# Form to add a new app ID
+with st.sidebar.expander("Add New App", expanded=False):
+    new_app_id = st.text_input("Enter new app ID (e.g., com.example.app)", "")
+    if st.button("Add App"):
+        try:
+            add_app_id(new_app_id)
+            st.success(f"Added app ID: {new_app_id}")
+            st.experimental_rerun()
+        except Exception as e:
+            st.error(f"Error adding app ID: {e}")
 
-    # Sentiment distribution
-    sentiment_counts = df['sentiment'].value_counts().reset_index()
-    sentiment_counts.columns = ['Sentiment', 'Count']
-    st.subheader("Sentiment Distribution")
-    fig = px.bar(sentiment_counts, x='Sentiment', y='Count',
-                 color='Sentiment',
-                 color_discrete_map={'Positive': '#00CC96', 'Negative': '#EF553B', 'Neutral': '#AB63FA'},
-                 text='Count')
-    fig.update_traces(textposition='outside')
-    fig.update_layout(
-        height=400,
-        xaxis_title="Sentiment",
-        yaxis_title="Number of Reviews",
-        font=dict(size=14),
-        margin=dict(t=50, b=50)
-    )
-    st.plotly_chart(fig, use_container_width=True)
+# Custom navigation in the sidebar
+st.sidebar.header("Navigation")
+page = st.sidebar.selectbox("Choose a page", ["Home", "Reviews", "Trends", "Tags"])
 
-    # Tag frequency
-    tags = df['tags'].str.split(',', expand=True).stack().str.strip()
-    tag_counts = tags.value_counts().head(10).reset_index()
-    tag_counts.columns = ['Tag', 'Count']
-    st.subheader("Top 10 Tags")
-    fig = px.bar(tag_counts, x='Count', y='Tag',
-                 orientation='h',
-                 color='Tag',
-                 color_discrete_sequence=px.colors.qualitative.Pastel,
-                 text='Count')
-    fig.update_traces(textposition='outside')
-    fig.update_layout(
-        height=400,
-        xaxis_title="Number of Reviews",
-        yaxis_title="Tag",
-        font=dict(size=14),
-        margin=dict(t=50, b=50),
-        showlegend=False
-    )
-    st.plotly_chart(fig, use_container_width=True)
-
-    # Rating distribution
-    rating_counts = df['rating'].value_counts().sort_index().reset_index()
-    rating_counts.columns = ['Rating', 'Count']
-    st.subheader("Rating Distribution")
-    fig = px.bar(rating_counts, x='Rating', y='Count',
-                 color='Rating',
-                 color_continuous_scale='Blues',
-                 text='Count')
-    fig.update_traces(textposition='outside')
-    fig.update_layout(
-        height=400,
-        xaxis_title="Rating (Stars)",
-        yaxis_title="Number of Reviews",
-        font=dict(size=14),
-        margin=dict(t=50, b=50),
-        showlegend=False
-    )
-    st.plotly_chart(fig, use_container_width=True)
-
-show_home()
+# Render the selected page
+if page == "Home":
+    show_home(app_id)
+elif page == "Reviews":
+    show_reviews(app_id)
+elif page == "Trends":
+    show_trends(app_id)
+elif page == "Tags":
+    show_tags(app_id)
