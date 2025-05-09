@@ -5,16 +5,7 @@ import spacy
 from spacy.cli import download
 import os
 # Configure the app to collapse the default sidebar and use a custom navigation
-MODEL_PATH = "en_core_web_sm"
-if not os.path.exists("spacy_model_installed.txt"):
-    try:
-        spacy.load(MODEL_PATH)
-    except Exception:
-        st.write("Downloading Spacy model 'en_core_web_sm'...")
-        download(MODEL_PATH)
-        with open("spacy_model_installed.txt", "w") as f:
-            f.write("Model downloaded")
-    st.write("Spacy model ready.")
+
 
 
 from pages.home import show_home
