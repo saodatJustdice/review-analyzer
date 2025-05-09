@@ -2,6 +2,7 @@ import streamlit as st
 
 from db import get_app_ids, add_app_id, clear_reviews_cache
 import spacy
+from spacy.cli import download
 import os
 # Configure the app to collapse the default sidebar and use a custom navigation
 MODEL_PATH = "en_core_web_sm"
