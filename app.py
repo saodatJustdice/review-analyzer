@@ -5,14 +5,16 @@ from pages.trends import show_trends
 from pages.tags import show_tags
 from db import get_app_ids, add_app_id, clear_reviews_cache
 import spacy
-import subprocess
 import os
 # Configure the app to collapse the default sidebar and use a custom navigation
 
-if not os.path.exists("setup_done.txt"):
-    subprocess.run(["python", "setup.py"])
-    with open("setup_done.txt", "w") as f:
-        f.write("Setup completed")
+# Download Spacy model if not already installed
+if not os.path.exists("spacy_model_installed.txt"):
+    st.write("Downloading Spacy model...")
+    spacy.cli.download("en_core_web_sm")
+    with open("spacy_model_installed.txt", "w") as f:
+        f.write("Model downloaded")
+nlp = spacy.load("en_core_web_sm")
 
 st.set_page_config(
     page_title="Play Store Review Analyzer",
