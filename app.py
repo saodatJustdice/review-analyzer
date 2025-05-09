@@ -1,20 +1,25 @@
 import streamlit as st
-from pages.home import show_home
-from pages.reviews import show_reviews
-from pages.trends import show_trends
-from pages.tags import show_tags
+
 from db import get_app_ids, add_app_id, clear_reviews_cache
 import spacy
 import os
 # Configure the app to collapse the default sidebar and use a custom navigation
-
-# Download Spacy model if not already installed
+MODEL_PATH = "en_core_web_sm"
 if not os.path.exists("spacy_model_installed.txt"):
-    st.write("Downloading Spacy model...")
-    spacy.cli.download("en_core_web_sm")
-    with open("spacy_model_installed.txt", "w") as f:
-        f.write("Model downloaded")
-nlp = spacy.load("en_core_web_sm")
+    try:
+        spacy.load(MODEL_PATH)
+    except Exception:
+        st.write("Downloading Spacy model 'en_core_web_sm'...")
+        download(MODEL_PATH)
+        with open("spacy_model_installed.txt", "w") as f:
+            f.write("Model downloaded")
+    st.write("Spacy model ready.")
+
+
+from pages.home import show_home
+from pages.reviews import show_reviews
+from pages.trends import show_trends
+from pages.tags import show_tags
 
 st.set_page_config(
     page_title="Play Store Review Analyzer",
